@@ -15,27 +15,37 @@ var upgrader = websocket.Upgrader{
 }
 
 func handleConnections(w http.ResponseWriter, r *http.Request) {
+	log.Println("New HTTP request:", r.RemoteAddr)
+
 	// обновление соединения до WebSocket
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Fatal(err)
+		log.Println("Upgrade error:", err)
+		return
 	}
 
 	defer ws.Close()
 
+	log.Println("WebSocket connected:", r.RemoteAddr)
+
 	for {
 		messageType, message, err := ws.ReadMessage()
 		if err != nil {
-			log.Println(err)
+			log.Println("Read error:", err)
 			break
 		}
 		log.Printf("Received: %s", message)
 
-		if err := ws.WriteMessage(messageType, message); err != nil {
-			log.Println(err)
+		prefix := []byte("Echo: ")
+		response := append(prefix, message...)
+
+		if err := ws.WriteMessage(messageType, response); err != nil {
+			log.Println("Write error:", err)
 			break
 		}
 	}
+
+	log.Println("Client disconnected:", r.RemoteAddr)
 }
 
 func main() {
